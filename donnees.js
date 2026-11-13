@@ -15,10 +15,10 @@ window.JEU = {
 
 window.NIVEAUX = {
   "Facile":    { couleur: "#e9dcff", points: 1 },
-  "Medium":    { couleur: "#c39bff", points: 2 },
-  "Difficile": { couleur: "#9b5cff", points: 3 },
-  "Extrême":   { couleur: "#6a1fe0", points: 4 },
-  "Hardcore":  { couleur: "#ff4d6d", points: 5 }
+  "Medium":    { couleur: "#c39bff", points: 1 },
+  "Difficile": { couleur: "#9b5cff", points: 1 },
+  "Extrême":   { couleur: "#6a1fe0", points: 1 },
+  "Hardcore":  { couleur: "#ff4d6d", points: 1 }
 };
 
 window.ELEMENTS = [
