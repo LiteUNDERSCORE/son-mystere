@@ -39,8 +39,12 @@ h1 span { color: var(--violet); }
 .lecteur[hidden] { display: none; }
 .photo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; }
 .photo[hidden] { display: none; }
-.photo .cadre { position: relative; max-width: 100%; max-height: 100%; }
-.photo img { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; }
+/* Le cadre prend la taille exacte de l'image agrandie au maximum (calculée en JS), pour que le cercle tombe au bon endroit. */
+.photo .cadre { position: relative; }
+.photo img { display: block; width: 100%; height: 100%; image-rendering: auto; }
+.photo .cadre { border-radius: 8px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, .6); }
+.badge-img { position: absolute; z-index: 4; left: 12px; top: 12px; background: rgba(14, 15, 19, .85); border: 1px solid var(--vert); color: var(--vert); border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: clamp(.8rem, 1.8vh, 1.1rem); text-transform: uppercase; letter-spacing: .06em; }
+.badge-img[hidden] { display: none; }
 .cercle { position: absolute; border: 6px solid var(--vert); border-radius: 50%; box-shadow: 0 0 0 4px rgba(0,0,0,.5), 0 0 30px var(--vert); transform: translate(-50%, -50%); animation: pop .5s ease-out; pointer-events: none; }
 @keyframes pop { from { opacity: 0; transform: translate(-50%, -50%) scale(1.6); } }
 /* Bloque la souris : sans survol, YouTube n'affiche ni titre ni barre. */
@@ -73,6 +77,11 @@ h1 span { color: var(--violet); }
 .choix.revele div { opacity: .35; }
 .choix.revele div.bonne { opacity: 1; border-color: var(--vert); background: rgba(31, 209, 122, .14); }
 .choix.revele div.bonne b { color: var(--vert); }
+.choix div { cursor: pointer; transition: transform .15s, border-color .15s; }
+.choix div.pris { border-color: var(--violet); background: rgba(139, 61, 255, .25); transform: translateY(-3px); box-shadow: 0 4px 0 var(--violet); }
+.choix div.pris b { color: #fff; }
+.choix.revele div.mauvais { opacity: 1; border-color: var(--rouge); background: rgba(255, 93, 115, .16); }
+.choix.revele div.mauvais b { color: var(--rouge); }
 
 /* ---- Réponse ---- */
 .bas { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: none; }
@@ -145,6 +154,7 @@ button:focus-visible { outline: 3px solid var(--violet-clair); outline-offset: 2
     <div class="ecran" id="ecran">
       <div class="lecteur" id="lecteurBox"><div id="yt"></div></div>
       <div class="photo" id="photo" hidden><div class="cadre" id="cadre"><img id="img" alt=""></div></div>
+      <div class="badge-img" id="badgeImg" hidden></div>
       <div class="bouclier" id="bouclier"></div>
       <div class="cache" id="cache">
         <div class="gros">?</div>
@@ -218,7 +228,7 @@ $("recapTitre").innerHTML = `Récap <span>${JEU.titre}${sep}${JEU.accent}</span>
 const estVideo = JEU.type === "video";
 if (!estVideo) { $("bLire").classList.add("cache-btn"); $("bRejouer").classList.add("cache-btn"); }
 $("aide").textContent = (estVideo ? "Espace : lecture/pause · R : rejouer · M : son · " : "") +
-  "Entrée : révéler · T : trouvé · X : raté · → : suivant (après la réponse) · ← : précédent · " + (estVideo ? "S : réglages · " : "") + "C : masquer les boutons";
+  ((JEU.choix || (window.ELEMENTS || []).some((o) => o.choix)) ? "1-4 : choisir une réponse · " : "") + "Entrée : révéler · T : trouvé · X : raté · → : suivant (après la réponse) · ← : précédent · " + (estVideo ? "S : réglages · " : "O : original / retouchée · ") + "C : masquer les boutons";
 
 function idVideo(url) { const m = String(url).match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/); return m ? m[1] : String(url).trim(); }
 const LISTE = (window.ELEMENTS || []).map((o) => {
@@ -228,6 +238,7 @@ const LISTE = (window.ELEMENTS || []).map((o) => {
 });
 let i = Math.min(memo.index || 0, Math.max(LISTE.length - 1, 0));
 let revele = false, etat = "pret", player = null, pret = false, timerCache = null;
+let voirRetouche = false;   // L'Intrus : après la révélation, O bascule entre l'original et la version retouchée
 
 const niv = (n) => { const v = (window.NIVEAUX || {})[n]; return { couleur: "#b98cff", points: 1, ...(v || {}) }; };
 const points = (k) => memo.res[k] === "ok" ? niv(LISTE[k].niveau).points : 0;
@@ -275,11 +286,21 @@ function rendre() {
   $("choix").hidden = !choix;
   if (choix) {
     $("choix").classList.toggle("revele", revele);
-    $("choix").innerHTML = choix.map((c, k) => `<div class="${k === o.bonne ? "bonne" : ""}"><b>${"ABCDEFG"[k]}</b>${c}</div>`).join("");
+    const pris = (memo.choix || {})[i];
+    $("choix").innerHTML = choix.map((c, k) => {
+      const cls = [k === o.bonne ? "bonne" : "", k === pris ? "pris" : "", revele && k === pris && k !== o.bonne ? "mauvais" : ""].join(" ");
+      return `<div class="${cls}" data-k="${k}"><b>${k + 1}</b>${c}</div>`;
+    }).join("");
   }
-  // Image : entourer l'intrus une fois révélé
+  // Image : à la révélation, on montre l'original (si fourni) et/ou on entoure l'intrus.
   if (!estVideo) {
     $("cadre").querySelectorAll(".cercle").forEach((e) => e.remove());
+    const original = revele && o.original && !voirRetouche;
+    const src = original ? o.original : o.image;
+    if ($("img").getAttribute("src") !== src) $("img").src = src;
+    $("badgeImg").hidden = !(revele && o.original);
+    $("badgeImg").textContent = original ? "Photo originale · O pour la version retouchée" : "Version retouchée · O pour l'originale";
+    // Le rond s'affiche sur les deux versions : il montre l'endroit qui a été modifié.
     if (revele && o.zone) {
       const z = document.createElement("div"); z.className = "cercle";
       z.style.left = o.zone.x + "%"; z.style.top = o.zone.y + "%";
@@ -322,7 +343,8 @@ function charger() {
     if (pret) player.cueVideoById({ videoId: o.id, startSeconds: o.debut || 0 });
   } else {
     $("lecteurBox").hidden = true; $("photo").hidden = false;
-    $("img").src = o.image; $("img").alt = "";
+    voirRetouche = false;
+    $("img").src = memo.res[i] && o.original ? o.original : o.image; $("img").alt = "";
     afficherCache("aucun");
     rendre();
   }
@@ -347,9 +369,21 @@ function aller(d) {
   if (pret) player.stopVideo();
   i = n; charger();
 }
+// Choix du joueur (touches 1 à 9 ou clic) avant la révélation.
+function choisir(k) {
+  const o = LISTE[i], choix = o && (o.choix || JEU.choix);
+  if (!choix || memo.res[i] || k < 0 || k >= choix.length) return;
+  memo.choix = memo.choix || {};
+  memo.choix[i] = memo.choix[i] === k ? undefined : k;
+  sauver(); rendre();
+}
 function reveler() {
   if (!LISTE[i] || memo.res[i]) return;
-  memo.res[i] = "vu"; sauver(); rendre();
+  // Si le joueur a choisi une réponse, le point se compte tout seul.
+  const pris = (memo.choix || {})[i];
+  const aChoix = LISTE[i].choix || JEU.choix;
+  memo.res[i] = aChoix && pris != null ? (pris === LISTE[i].bonne ? "ok" : "rate") : "vu";
+  sauver(); rendre();
   // Jeu son : à la révélation, on montre enfin la vidéo.
   if (JEU.ecoute && etat === "lecture") afficherCache("aucun");
 }
@@ -369,7 +403,8 @@ function montrerRecap() {
   $("recap").hidden = false;
 }
 $("bRetour").onclick = () => { $("recap").hidden = true; };
-$("bNouvelle").onclick = () => { memo.res = {}; i = 0; sauver(); $("recap").hidden = true; if (pret) player.stopVideo(); charger(); };
+$("choix").addEventListener("click", (e) => { const d = e.target.closest("[data-k]"); if (d) choisir(Number(d.dataset.k)); });
+$("bNouvelle").onclick = () => { memo.res = {}; memo.choix = {}; i = 0; sauver(); $("recap").hidden = true; if (pret) player.stopVideo(); charger(); };
 
 // ---- Lecteur YouTube ----
 if (estVideo) {
@@ -428,6 +463,8 @@ document.addEventListener("keydown", (e) => {
   else if (k === "enter") { e.preventDefault(); reveler(); }
   else if (k === "t") marquer("ok");
   else if (k === "x") marquer("rate");
+  else if (/^[1-9]$/.test(k)) choisir(Number(k) - 1);
+  else if (k === "o" && !estVideo && revele && LISTE[i] && LISTE[i].original) { voirRetouche = !voirRetouche; rendre(); }
   else if (k === "arrowright") aller(1);
   else if (k === "arrowleft") aller(-1);
   else if (k === "r") rejouer();
@@ -445,6 +482,18 @@ function cadrer() {
 }
 window.addEventListener("resize", cadrer);
 cadrer();
+// L'Intrus : agrandit l'image au maximum dans l'écran, sans la déformer.
+function ajusterImage() {
+  const p = $("photo"), im = $("img");
+  if (estVideo || !im.naturalWidth || !p.clientWidth) return;
+  // On n'agrandit pas plus de JEU.agrandissementMax (1,4× par défaut) : au-delà, une petite image devient pixelisée.
+  const s = Math.min(p.clientWidth / im.naturalWidth, p.clientHeight / im.naturalHeight, JEU.agrandissementMax || 1.4);
+  $("cadre").style.width = Math.floor(im.naturalWidth * s) + "px";
+  $("cadre").style.height = Math.floor(im.naturalHeight * s) + "px";
+}
+$("img").addEventListener("load", ajusterImage);
+window.addEventListener("resize", ajusterImage);
+new ResizeObserver(ajusterImage).observe($("ecran"));
 // Le choix et la réponse prennent de la place : on recadre quand ils changent.
 new ResizeObserver(cadrer).observe(document.querySelector(".zone"));
 
