@@ -38,8 +38,8 @@ window.ELEMENTS = [
   // Senna 1993, sans commentaire.
   { niveau: "Difficile", youtube: "https://www.youtube.com/watch?v=zvi1v4ClRLU", reponse: "Suzuka", choix: ["Suzuka","Adélaïde","Kyalami","Donington"], bonne: 0,                detail: "Senna, McLaren 1993",        debut: 3, fin: null, cadre: { haut: 55, g: 55, d: 0 } },
   // Schumacher, pole 2004, onboard du début à la fin.
-  { niveau: "Extrême",   youtube: "https://www.youtube.com/watch?v=Nl4xIjzUPQI", reponse: "Barcelone", choix: ["Barcelone","Valence","Jerez","Estoril"], bonne: 0,         detail: "Schumacher, pole 2004",      debut: 0, fin: null, cadre: { haut: 50, g: 50, d: 50 } },
+  { niveau: "Extrême",   youtube: "https://www.youtube.com/watch?v=Nl4xIjzUPQI", reponse: "Barcelone", choix: ["Barcelone","Valence","Jerez","Estoril"], bonne: 0,         detail: "Schumacher, pole 2004",      debut: 0, fin: null, cadre: { haut: 50, g: 45, d: 28 } },
   // Schumacher, pole 2004 (on coupe le carton de titre du début).
-  { niveau: "Extrême",   youtube: "https://www.youtube.com/watch?v=roRGYJPBsdw", reponse: "Hockenheim", choix: ["Nürburgring","A1-Ring","Magny-Cours","Hockenheim"], bonne: 3, detail: "Schumacher, pole 2004",     debut: 7, fin: null, cadre: { haut: 50, g: 50, d: 50 } },
+  { niveau: "Extrême",   youtube: "https://www.youtube.com/watch?v=roRGYJPBsdw", reponse: "Hockenheim", choix: ["Nürburgring","A1-Ring","Magny-Cours","Hockenheim"], bonne: 3, detail: "Schumacher, pole 2004",     debut: 7, fin: null, cadre: { haut: 50, g: 45, d: 28 } },
   { niveau: "Hardcore",  youtube: "https://www.youtube.com/watch?v=GGu--_UHY_o", reponse: "Zandvoort", choix: ["Brands Hatch","Portimão","Zandvoort","Jerez"], bonne: 2,            detail: "Verstappen, Red Bull",       debut: 0, fin: null, cadre: { haut: 48, g: 35, d: 28 } }
 ];
