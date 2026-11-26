@@ -227,8 +227,9 @@ $("titre").innerHTML = `${JEU.titre}${sep}<span>${JEU.accent}</span>`;
 $("recapTitre").innerHTML = `Récap <span>${JEU.titre}${sep}${JEU.accent}</span>`;
 const estVideo = JEU.type === "video";
 if (!estVideo) { $("bLire").classList.add("cache-btn"); $("bRejouer").classList.add("cache-btn"); }
+const avecChoix = !!(JEU.choix || (window.ELEMENTS || []).some((o) => o.choix));
 $("aide").textContent = (estVideo ? "Espace : lecture/pause · R : rejouer · M : son · " : "") +
-  ((JEU.choix || (window.ELEMENTS || []).some((o) => o.choix)) ? "1-4 : choisir une réponse · " : "") + "Entrée : révéler · T : trouvé · X : raté · → : suivant (après la réponse) · ← : précédent · " + (estVideo ? "S : réglages · " : "O : original / retouchée · ") + "C : masquer les boutons";
+  (avecChoix ? "1-4 : choisir une réponse · Entrée : révéler · " : "Entrée : révéler · T : trouvé · X : raté · ") + "→ : suivant (après la réponse) · ← : précédent · " + (estVideo ? "S : réglages · " : "O : original / retouchée · ") + "C : masquer les boutons";
 
 function idVideo(url) { const m = String(url).match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/); return m ? m[1] : String(url).trim(); }
 const LISTE = (window.ELEMENTS || []).map((o) => {
@@ -309,8 +310,9 @@ function rendre() {
     }
   }
   $("bReveler").classList.toggle("cache-btn", revele);
-  $("bOk").classList.toggle("cache-btn", !revele);
-  $("bRate").classList.toggle("cache-btn", !revele);
+  // Avec des choix, le score est automatique : pas de boutons Trouvé / Raté.
+  $("bOk").classList.toggle("cache-btn", !revele || avecChoix);
+  $("bRate").classList.toggle("cache-btn", !revele || avecChoix);
   $("bSuiv").disabled = !revele;
   $("bSuiv").classList.toggle("main", revele);
   $("bSuiv").textContent = i === LISTE.length - 1 ? "Récap →" : "→";
@@ -461,8 +463,8 @@ document.addEventListener("keydown", (e) => {
   if (!$("recap").hidden) { if (k === "escape" || k === "arrowleft") $("recap").hidden = true; return; }
   if (k === " ") { e.preventDefault(); basculer(); }
   else if (k === "enter") { e.preventDefault(); reveler(); }
-  else if (k === "t") marquer("ok");
-  else if (k === "x") marquer("rate");
+  else if (k === "t" && !avecChoix) marquer("ok");
+  else if (k === "x" && !avecChoix) marquer("rate");
   else if (/^[1-9]$/.test(k)) choisir(Number(k) - 1);
   else if (k === "o" && !estVideo && revele && LISTE[i] && LISTE[i].original) { voirRetouche = !voirRetouche; rendre(); }
   else if (k === "arrowright") aller(1);
